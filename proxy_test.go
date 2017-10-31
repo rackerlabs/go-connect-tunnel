@@ -65,6 +65,7 @@ func TestValidConnect(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Expect this farend response\n", line)
 
+	conn.SetDeadline(time.Now().Add(10 * time.Second))
 	conn.Write([]byte("Client sent content\n"))
 
 	select {
@@ -152,8 +153,10 @@ func (p *CaptureProxy) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		p.TestContext.Fatal("Hijacking: ", err)
 	}
+	conn.SetDeadline(time.Now().Add(10 * time.Second))
 	writer.Write([]byte(p.ResponseBody))
 	writer.Flush()
+	fmt.Println("Sent content back via tunnel")
 
 	reader := bufio.NewReader(conn)
 	line, err = reader.ReadString('\n')
