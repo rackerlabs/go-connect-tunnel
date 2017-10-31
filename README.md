@@ -1,3 +1,5 @@
+[![Go Documentation](https://godoc.org/github.com/rackerlabs/go-connect-tunnel?status.svg)](https://godoc.org/github.com/rackerlabs/go-connect-tunnel)
+
 ## Example
 
 ```go
