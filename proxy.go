@@ -23,6 +23,7 @@ package tunnel
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	"net"
@@ -42,6 +43,10 @@ const (
 // The url must have a scheme of either http or https and explicitly specify the port.
 func DialViaProxy(url *url.URL, farendAddress string) (net.Conn, error) {
 	proxyAddress := net.JoinHostPort(url.Hostname(), url.Port())
+        proxyAuth := ""
+	if url.User != nil {
+		proxyAuth = "Basic " + base64.StdEncoding.EncodeToString([]byte(url.User.String()))
+	}
 
 	switch url.Scheme {
 	case "http":
@@ -50,7 +55,7 @@ func DialViaProxy(url *url.URL, farendAddress string) (net.Conn, error) {
 			return nil, errors.WithMessage(err, "Failed to connect to proxy")
 		}
 
-		return establishProxyConnect(conn, farendAddress)
+		return establishProxyConnect(conn, farendAddress, proxyAuth)
 
 	case "https":
 		conn, err := tls.Dial("tcp", proxyAddress, nil)
@@ -58,20 +63,24 @@ func DialViaProxy(url *url.URL, farendAddress string) (net.Conn, error) {
 			return nil, errors.WithMessage(err, "Failed to connect via TLS to proxy")
 		}
 
-		return establishProxyConnect(conn, farendAddress)
+		return establishProxyConnect(conn, farendAddress, proxyAuth)
 
 	default:
 		return nil, fmt.Errorf("URL scheme '%v' not supported for proxy", url.Scheme)
 	}
 }
 
-func establishProxyConnect(conn net.Conn, farendAddress string) (net.Conn, error) {
+func establishProxyConnect(conn net.Conn, farendAddress string, proxyAuth string) (net.Conn, error) {
 	err := conn.SetDeadline(time.Now().Add(ProxyDeadlineDuration))
 	if err != nil {
 		return nil, err
 	}
-
-	req := fmt.Sprintf("CONNECT %s HTTP/1.1\nHost: %s\n\n", farendAddress, farendAddress)
+	req := ""
+        if proxyAuth != "" {
+	    req = fmt.Sprintf("CONNECT %s HTTP/1.1\nHost: %s\nProxy-Authorization: %s\n\n", farendAddress, farendAddress, proxyAuth)
+        } else {
+            req = fmt.Sprintf("CONNECT %s HTTP/1.1\nHost: %s\n\n", farendAddress, farendAddress)
+        }
 	_, err = conn.Write([]byte(req))
 	if err != nil {
 		return nil, err
