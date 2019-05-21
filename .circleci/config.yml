@@ -1,16 +1,10 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.8
+      - image: circleci/golang:1.12.5
 
-    working_directory: /go/src/github.com/rackerlabs/go-connect-tunnel
     steps:
       - checkout
 
-      - run: curl https://glide.sh/get | sh
-      - run: glide install
-      - run: go test -v $(glide nv)
+      - run: go test ./...
